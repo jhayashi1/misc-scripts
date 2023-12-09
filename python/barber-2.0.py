@@ -5,7 +5,6 @@ import json
 import sched
 import time
 import atexit
-
 START_DATE = datetime.today().strftime('%Y-%m-%d')
 END_DATE = '2023-12-22'
 # END_DATE = '2024-1-20'
@@ -67,12 +66,19 @@ def print_earliest_time(runnable_task):
             time = t['t']
             full_time = f'{date} {time}'
             full_time_obj = datetime.strptime(full_time, '%Y-%m-%d %H:%M')
+            formatted_time = full_time_obj.strftime('%m-%d-%Y %I:%M %p')
 
-            if full_time not in printed_times:
-                formatted_time = full_time_obj.strftime('%m-%d-%Y %I:%M %p')
+            if formatted_time not in printed_times:
                 print(f'Availability at: {formatted_time}')
-                printed_times.append(full_time)
+                printed_times.append(formatted_time)
+
+def exit_handler():
+    print('\nFinal listing:')
+    for time in printed_times:
+        print(f'\t{time}')
 
 task = sched.scheduler(time.time, time.sleep)
 task.enter(300, 1, print_earliest_time, (task,))
 task.run()
+
+atexit.register(exit_handler)
