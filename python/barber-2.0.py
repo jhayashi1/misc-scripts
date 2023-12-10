@@ -1,15 +1,18 @@
-from datetime import datetime
-
 import requests
 import json
 import sched
 import time
 import atexit
+import os
 
+from dotenv import load_dotenv
+from discord import Client
+from datetime import datetime
+
+load_dotenv()
 START_DATE = datetime.today().strftime('%Y-%m-%d')
 END_DATE = '2023-12-22'
 # END_DATE = '2024-1-20'
-
 printed_times = []
 
 url = 'https://us.booksy.com/core/v2/customer_api/me/businesses/623412/appointments/time_slots'
@@ -52,7 +55,7 @@ headers = {
     'X-Fingerprint':'c9e36b03-7237-4143-8a2c-a85ce7374555'
 }
 
-def print_earliest_time(runnable_task, count):
+async def print_earliest_time(runnable_task, count):
     # get data
     r = requests.post(url, json=payload, headers=headers)
     response_json = json.loads(r.text)
@@ -70,23 +73,24 @@ def print_earliest_time(runnable_task, count):
             if formatted_time not in printed_times:
                 print(f'Availability at: {formatted_time}')
                 printed_times.append(formatted_time)
+                user = await client.fetch_user(os.getenv('DISCORD_USER'))
+                await user.send(f'Availability at: {formatted_time}')
     
     # iterate count and print info
     count = count + 1
     if count % 10 == 0:
-        print(f'iteration: {count}')
-        print(f'response code: {r.status_code}')
+        print(f'\niteration: {count}')
+        print(f'response code: {r.status_code}\n')
     
     # schedule next task
     runnable_task.enter(300, 1, print_earliest_time, (runnable_task, count,))
 
-def exit_handler():
-    print('\nFinal listing:')
-    for time in printed_times:
-        print(f'\t{time}')
+if __name__ == '__main__':
+    # register discord client for notifications
+    client = Client()
+    client.run(os.getenv('TOKEN'))
 
-task = sched.scheduler(time.time, time.sleep)
-task.enter(5, 1, print_earliest_time, (task, -1,))
-task.run()
-
-atexit.register(exit_handler)
+    # run main event loop
+    task = sched.scheduler(time.time, time.sleep)
+    task.enter(5, 1, print_earliest_time, (task, -1,))
+    task.run()
