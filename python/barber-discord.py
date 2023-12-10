@@ -57,7 +57,7 @@ headers = {
     'X-Fingerprint':'c9e36b03-7237-4143-8a2c-a85ce7374555'
 }
 
-@tasks.loop(seconds=5)
+@tasks.loop(minutes=5)
 async def get_times_in_date_range():
     # get data
     r = requests.post(url, json=payload, headers=headers)
