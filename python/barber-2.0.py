@@ -5,6 +5,7 @@ import json
 import sched
 import time
 import atexit
+
 START_DATE = datetime.today().strftime('%Y-%m-%d')
 END_DATE = '2023-12-22'
 # END_DATE = '2024-1-20'
@@ -51,15 +52,13 @@ headers = {
     'X-Fingerprint':'c9e36b03-7237-4143-8a2c-a85ce7374555'
 }
 
-def print_earliest_time(runnable_task):
-    # schedule next task
-    runnable_task.enter(300, 1, print_earliest_time, (runnable_task,))
-
-    # request
+def print_earliest_time(runnable_task, count):
+    # get data
     r = requests.post(url, json=payload, headers=headers)
     response_json = json.loads(r.text)
     time_slots = response_json['time_slots']
 
+    # iterate through response for new times listed
     for time_slot in time_slots:
         date = time_slot['date']
         for t in time_slot['slots']:
@@ -71,6 +70,15 @@ def print_earliest_time(runnable_task):
             if formatted_time not in printed_times:
                 print(f'Availability at: {formatted_time}')
                 printed_times.append(formatted_time)
+    
+    # iterate count and print info
+    count = count + 1
+    if count % 10 == 0:
+        print(f'iteration: {count}')
+        print(f'response code: {r.status_code}')
+    
+    # schedule next task
+    runnable_task.enter(300, 1, print_earliest_time, (runnable_task, count,))
 
 def exit_handler():
     print('\nFinal listing:')
@@ -78,7 +86,7 @@ def exit_handler():
         print(f'\t{time}')
 
 task = sched.scheduler(time.time, time.sleep)
-task.enter(300, 1, print_earliest_time, (task,))
+task.enter(5, 1, print_earliest_time, (task, -1,))
 task.run()
 
 atexit.register(exit_handler)
